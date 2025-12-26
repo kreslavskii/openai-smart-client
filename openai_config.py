@@ -1,4 +1,4 @@
-"""Конфигурация для OpenAI API (YAML, dataclasses)."""
+"""Configuration for OpenAI API (YAML, dataclasses)."""
 
 from __future__ import annotations
 
@@ -13,20 +13,20 @@ try:
     import yaml
 except ImportError as err:
     raise ImportError(
-        "Библиотека pyyaml не установлена. Установите: pip install pyyaml"
+        "The pyyaml library is not installed. Install it: pip install pyyaml"
     ) from err
 
 logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# Конфигурация
+# Configuration
 # =============================================================================
 
 
 @dataclass
 class WebSearchConfig:
-    """Конфигурация Web Search."""
+    """Web Search configuration."""
 
     tool_choice: Literal["auto", "required", "none"] = "auto"
     search_context_size: Literal["low", "medium", "high"] = "medium"
@@ -35,7 +35,7 @@ class WebSearchConfig:
 
 @dataclass
 class OpenAIConfig:
-    """Конфигурация для вызова OpenAI API."""
+    """Configuration for OpenAI API calls."""
 
     api_key: str | None = None
     model: str = "gpt-4o"
@@ -44,7 +44,7 @@ class OpenAIConfig:
     timeout: float = 60.0
     max_retries: int = 3
     retry_delay: float = 1.0
-    max_retry_delay: float = 60.0  # Верхний предел задержки retry
+    max_retry_delay: float = 60.0  # Upper limit for retry delay
     base_url: str | None = None
     organization: str | None = None
     defaults: dict[str, Any] | None = None
@@ -52,7 +52,7 @@ class OpenAIConfig:
 
     @classmethod
     def _find_config_path(cls) -> Path | None:
-        """Ищет файл конфигурации в стандартных местах."""
+        """Find configuration file in standard locations."""
         env_path = os.getenv("OPENAI_CONFIG_PATH")
         if env_path:
             return Path(env_path)
@@ -69,17 +69,17 @@ class OpenAIConfig:
 
     @classmethod
     def from_yaml(cls, config_path: str | Path | None = None) -> OpenAIConfig:
-        """Загружает конфигурацию из YAML файла.
+        """Load configuration from YAML file.
 
         Args:
-            config_path: Путь к файлу. Если None, ищет автоматически.
+            config_path: Path to file. If None, searches automatically.
 
         Returns:
-            Экземпляр OpenAIConfig.
+            OpenAIConfig instance.
 
         Raises:
-            FileNotFoundError: Файл конфигурации не найден.
-            yaml.YAMLError: Ошибка парсинга YAML.
+            FileNotFoundError: Configuration file not found.
+            yaml.YAMLError: YAML parsing error.
         """
         if config_path is None:
             config_path = cls._find_config_path()
@@ -88,23 +88,23 @@ class OpenAIConfig:
 
         path = Path(config_path)
         if not path.exists():
-            raise FileNotFoundError(f"Файл конфигурации не найден: {path}")
+            raise FileNotFoundError(f"Configuration file not found: {path}")
 
         try:
             with path.open("r", encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
         except yaml.YAMLError as e:
-            raise yaml.YAMLError(f"Ошибка парсинга YAML: {path}: {e}") from e
+            raise yaml.YAMLError(f"YAML parsing error: {path}: {e}") from e
 
-        # API ключ берётся ТОЛЬКО из переменной окружения (безопасность)
+        # API key is taken ONLY from environment variable (security)
         api_key = os.getenv("OPENAI_API_KEY")
 
-        # max_completion_tokens с fallback на max_tokens для совместимости
+        # max_completion_tokens with fallback to max_tokens for compatibility
         mct = data.get("max_completion_tokens")
         if mct is None:
             mct = data.get("max_tokens")
 
-        # Web Search конфигурация
+        # Web Search configuration
         web_search_data = data.get("web_search")
         web_search_config = None
         if web_search_data and isinstance(web_search_data, dict):
@@ -133,7 +133,7 @@ class OpenAIConfig:
 
 
 # =============================================================================
-# Helper функции
+# Helper Functions
 # =============================================================================
 
 
@@ -141,7 +141,7 @@ def _resolve_config(
     config: OpenAIConfig | None,
     config_path: str | Path | None,
 ) -> OpenAIConfig | None:
-    """Разрешает конфигурацию из различных источников."""
+    """Resolve configuration from various sources."""
     if config is not None:
         return config
     if config_path is not None:
@@ -151,24 +151,24 @@ def _resolve_config(
     except FileNotFoundError:
         return None
     except yaml.YAMLError as e:
-        logger.warning("Ошибка парсинга конфига, используются дефолты: %s", e)
+        logger.warning("Config parsing error, using defaults: %s", e)
         return None
 
 
 def parse_json(text: str, *, max_error_snippet: int = 400) -> Any:
-    """Парсит JSON с диагностикой ошибок.
+    """Parse JSON with error diagnostics.
 
-    Публичная функция для использования в Schema-модуле (SGR).
+    Public function for use in Schema module (SGR).
 
     Args:
-        text: JSON строка для парсинга.
-        max_error_snippet: Максимальная длина фрагмента текста в сообщении об ошибке.
+        text: JSON string to parse.
+        max_error_snippet: Maximum length of text snippet in error message.
 
     Returns:
-        Распарсенный JSON объект.
+        Parsed JSON object.
 
     Raises:
-        ValueError: Невалидный JSON с диагностикой ошибки.
+        ValueError: Invalid JSON with error diagnostics.
 
     Example:
         >>> from openai_client_module import parse_json
@@ -180,8 +180,8 @@ def parse_json(text: str, *, max_error_snippet: int = 400) -> Any:
     except json.JSONDecodeError as e:
         snippet = text[:max_error_snippet]
         raise ValueError(
-            f"Невалидный JSON в ответе модели: {e.msg} (pos={e.pos}). "
-            f"Начало ответа: {snippet!r}"
+            f"Invalid JSON in model response: {e.msg} (pos={e.pos}). "
+            f"Response start: {snippet!r}"
         ) from e
 
 
@@ -189,5 +189,5 @@ __all__ = [
     "WebSearchConfig",
     "OpenAIConfig",
     "_resolve_config",
-    "parse_json",  # Публичный API для Schema-модуля
+    "parse_json",  # Public API for Schema module
 ]
