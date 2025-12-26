@@ -1,48 +1,48 @@
 # OpenAI Client Module
 
-**Универсальный модуль для работы с OpenAI API.**
+**Universal module for working with OpenAI API.**
 
-> **Для AI агентов:** Начните с файла [`00_AGENT_INSTRUCTIONS.md`](./00_AGENT_INSTRUCTIONS.md)
+> **For AI agents:** Start with the file [`00_AGENT_INSTRUCTIONS.md`](./00_AGENT_INSTRUCTIONS.md)
 
-## Основные возможности
+## Main Features
 
-- **Chat Completions API**: стандартные текстовые запросы
-- **Web Search**: поиск в интернете через Responses API
-- **Structured Outputs**: JSON с валидацией схемы
-- **Автоматический выбор модели**: интеллектуальный роутинг по сложности запроса
-- **Batch операции**: переиспользование HTTP клиента для производительности
+- **Chat Completions API**: standard text requests
+- **Web Search**: internet search via Responses API
+- **Structured Outputs**: JSON with schema validation
+- **Automatic Model Selection**: intelligent routing based on request complexity
+- **Batch Operations**: HTTP client reuse for performance
 
-## Структура модуля
-Модуль разделён на 4 файла для лучшей поддерживаемости:
+## Module Structure
+The module is split into 4 files for better maintainability:
 
-- `openai_types.py` — типы, справочники моделей, роутинг, Web Search helpers
-- `openai_config.py` — конфигурация (YAML, dataclasses), `parse_json()`
-- `openai_client.py` — класс `OpenAIClient`, контекстный менеджер `openai_client()`
-- `openai_api.py` — функциональный API (`call_openai_*`), CLI
-- `__init__.py` — реэкспорт публичного API
+- `openai_types.py` — types, model registries, routing, Web Search helpers
+- `openai_config.py` — configuration (YAML, dataclasses), `parse_json()`
+- `openai_client.py` — `OpenAIClient` class, `openai_client()` context manager
+- `openai_api.py` — functional API (`call_openai_*`), CLI
+- `__init__.py` — public API re-export
 
-## Установка
+## Installation
 
-Модуль не требует установки, достаточно скопировать папку `openai_client_module` в ваш проект.
+The module doesn't require installation, just copy the `openai_client_module` folder to your project.
 
-## Быстрый старт
+## Quick Start
 
 ```python
 from openai_client_module import call_openai
 
-# Простой вызов
+# Simple call
 result = call_openai("The Ultimate Question of Life, the Universe, and Everything?")
 print(result)
 ```
 
-## Примеры использования
+## Usage Examples
 
-### Стандартный вызов
+### Standard Call
 
 ```python
 from openai_client_module import call_openai
 
-response = call_openai("Объясни квантовую механику")
+response = call_openai("Explain quantum mechanics")
 ```
 
 ### Web Search
@@ -50,7 +50,7 @@ response = call_openai("Объясни квантовую механику")
 ```python
 from openai_client_module import call_openai_web_search
 
-result = call_openai_web_search("Какая погода в Москве сегодня?")
+result = call_openai_web_search("What's the weather in New York today?")
 ```
 
 ### Structured Outputs (JSON)
@@ -59,39 +59,39 @@ result = call_openai_web_search("Какая погода в Москве сег�
 from openai_client_module import call_openai_structured
 
 obj = call_openai_structured(
-    prompt="Верни JSON с полями name и age",
+    prompt="Return JSON with name and age fields",
     response_format={"type": "json_object"},
 )
 ```
 
-### Batch операции (производительность)
+### Batch Operations (Performance)
 
 ```python
 from openai_client_module import openai_client
 
-# Переиспользование HTTP клиента для множества запросов
+# HTTP client reuse for multiple requests
 with openai_client() as client:
     for prompt in prompts:
         result = client.call(prompt)
 ```
 
-### Автоматический выбор модели
+### Automatic Model Selection
 
 ```python
 from openai_client_module import call_openai, RoutingConfig, choose_model
 
-# Автоматический выбор модели по сложности
-result = call_openai("Сложный запрос", auto_model=True)
+# Automatic model selection based on complexity
+result = call_openai("Complex request", auto_model=True)
 
-# Ручной выбор модели
+# Manual model selection
 model = choose_model(
-    system_prompt="Ты эксперт по Python",
-    user_prompt="Объясни декораторы",
+    system_prompt="You are a Python expert",
+    user_prompt="Explain decorators",
     strict_schema=False,
 )
-result = call_openai("Объясни декораторы", model=model)
+result = call_openai("Explain decorators", model=model)
 
-# Кастомная конфигурация роутинга
+# Custom routing configuration
 custom_cfg = RoutingConfig(
     default_cheap="gpt-4o-mini",
     default_capable="gpt-4.1-mini",
@@ -99,19 +99,19 @@ custom_cfg = RoutingConfig(
 )
 ```
 
-### Работа с Web Search источниками
+### Working with Web Search Sources
 
 ```python
 from openai_client_module import call_openai_web_search, extract_web_sources, extract_url_citations
 
-# Получить ответ с источниками
+# Get response with sources
 raw_response = call_openai_web_search(
-    "Последние новости о Python 3.13",
+    "Latest news about Python 3.13",
     return_raw=True,
     include_sources=True,
 )
 
-# Извлечь источники и цитаты
+# Extract sources and citations
 sources = extract_web_sources(raw_response)
 citations = extract_url_citations(raw_response)
 
@@ -119,38 +119,38 @@ for source in sources:
     print(f"{source.get('title')}: {source.get('url')}")
 ```
 
-### Structured Outputs с валидацией
+### Structured Outputs with Validation
 
 ```python
 from openai_client_module import call_openai_structured, parse_json
 
-# Автоматический парсинг JSON
+# Automatic JSON parsing
 obj = call_openai_structured(
-    prompt="Верни JSON с полями name и age",
+    prompt="Return JSON with name and age fields",
     response_format={"type": "json_object"},
-    parse=True,  # Возвращает dict
+    parse=True,  # Returns dict
 )
 
-# Ручной парсинг с диагностикой ошибок
+# Manual parsing with error diagnostics
 json_str = call_openai_structured(
-    prompt="Верни JSON",
+    prompt="Return JSON",
     response_format={"type": "json_object"},
-    parse=False,  # Возвращает строку
+    parse=False,  # Returns string
 )
 try:
     obj = parse_json(json_str)
 except ValueError as e:
-    print(f"Ошибка парсинга: {e}")
+    print(f"Parsing error: {e}")
 ```
 
-## Конфигурация
+## Configuration
 
-Модуль ищет файл `openai_config.yaml` в следующих местах:
-1. Путь из переменной окружения `OPENAI_CONFIG_PATH`
-2. Текущая директория
-3. Директория модуля
+The module looks for `openai_config.yaml` in the following locations:
+1. Path from `OPENAI_CONFIG_PATH` environment variable
+2. Current directory
+3. Module directory
 
-Пример конфигурации:
+Configuration example:
 
 ```yaml
 model: "gpt-4o"
@@ -166,12 +166,12 @@ web_search:
   search_context_size: "medium"
 ```
 
-**Важно**: API ключ берётся **ТОЛЬКО** из переменной окружения `OPENAI_API_KEY`. Никогда не храните ключи в конфигурационных файлах!
+**Important**: API key is taken **ONLY** from the `OPENAI_API_KEY` environment variable. Never store keys in configuration files!
 
-## Документация
+## Documentation
 
-- **Полная документация:** `OPENAI_CLIENT_DOC.md` — архитектура, API, ограничения
-- **Docstrings:** доступны через `help()`:
+- **Full documentation:** `OPENAI_CLIENT_DOC.md` — architecture, API, limitations
+- **Docstrings:** available via `help()`:
 
 ```python
 from openai_client_module import call_openai, OpenAIClient, RoutingConfig
@@ -180,87 +180,87 @@ help(OpenAIClient.call)
 help(RoutingConfig)
 ```
 
-## Поддерживаемые модели
+## Supported Models
 
-### Стандартные модели (Chat Completions API)
-- `gpt-4o`, `gpt-4o-mini` — GPT-4o семейство
-- `gpt-4.1`, `gpt-4.1-mini` — GPT-4.1 семейство
-- `o3-mini`, `o4-mini` — O-серия
+### Standard Models (Chat Completions API)
+- `gpt-4o`, `gpt-4o-mini` — GPT-4o family
+- `gpt-4.1`, `gpt-4.1-mini` — GPT-4.1 family
+- `o3-mini`, `o4-mini` — O-series
 
-### Search-модели (Chat Completions + web search)
-- `gpt-4o-search-preview`, `gpt-4o-mini-search-preview` — доступны без верификации org
-- `gpt-5-search-api` — может требовать верификации org
+### Search Models (Chat Completions + web search)
+- `gpt-4o-search-preview`, `gpt-4o-mini-search-preview` — available without org verification
+- `gpt-5-search-api` — may require org verification
 
-### Deep Research модели (Responses API)
-- `o3-deep-research`, `o4-mini-deep-research` — длительный agentic поиск
+### Deep Research Models (Responses API)
+- `o3-deep-research`, `o4-mini-deep-research` — long-running agentic search
 
-### Справочники моделей
+### Model Registries
 
 ```python
 from openai_client_module import (
-    MODELS_REGISTRY,      # {alias: ModelInfo} — полная информация
-    MODELS_ALL,           # {alias: snapshot} — обратная совместимость
-    MODELS_STANDARD,      # Стандартные модели
-    MODELS_SEARCH,        # Search-модели
-    MODELS_DEEP_RESEARCH, # Deep Research модели
+    MODELS_REGISTRY,      # {alias: ModelInfo} — full information
+    MODELS_ALL,           # {alias: snapshot} — backward compatibility
+    MODELS_STANDARD,      # Standard models
+    MODELS_SEARCH,        # Search models
+    MODELS_DEEP_RESEARCH, # Deep Research models
 )
 
-# Получить информацию о модели
+# Get model information
 info = MODELS_REGISTRY["gpt-4o"]
 print(f"Snapshot: {info.snapshot}, Category: {info.category}")
 print(f"Cost: ${info.input_cost_per_m}/1M input, ${info.output_cost_per_m}/1M output")
 ```
 
-## Структура модуля
+## Module Structure
 
 ```
 openai_client_module/
-├── __init__.py           # Реэкспорт публичного API
-├── openai_types.py       # Типы, справочники, роутинг
-├── openai_config.py      # Конфигурация (YAML, dataclasses)
-├── openai_client.py      # Класс OpenAIClient
-├── openai_api.py         # Функциональный API + CLI
-├── openai_config.yaml    # Конфигурация по умолчанию
-├── OPENAI_CLIENT_DOC.md  # Полная документация
-└── README.md             # Этот файл
+├── __init__.py           # Public API re-export
+├── openai_types.py       # Types, registries, routing
+├── openai_config.py      # Configuration (YAML, dataclasses)
+├── openai_client.py      # OpenAIClient class
+├── openai_api.py         # Functional API + CLI
+├── openai_config.yaml    # Default configuration
+├── OPENAI_CLIENT_DOC.md  # Full documentation
+└── README.md             # This file
 ```
 
-**Граф зависимостей:**
+**Dependency Graph:**
 ```
-openai_types.py     ← нет зависимостей
+openai_types.py     ← no dependencies
        ↓
-openai_config.py    ← нет зависимостей
+openai_config.py    ← no dependencies
        ↓
 openai_client.py    ← types, config, openai SDK
        ↓
 openai_api.py       ← types, config, client
 ```
 
-## Публичный API
+## Public API
 
-### Функциональный API
-- `call_openai()` — базовый вызов
+### Functional API
+- `call_openai()` — basic call
 - `call_openai_structured()` — JSON structured outputs
-- `call_openai_web_search()` — Web Search через Responses API
-- `call_openai_markdown()` — вывод в Markdown
+- `call_openai_web_search()` — Web Search via Responses API
+- `call_openai_markdown()` — Markdown output
 
-### Класс и контекстный менеджер
-- `OpenAIClient` — класс для batch операций
-- `openai_client()` — контекстный менеджер
+### Class and Context Manager
+- `OpenAIClient` — class for batch operations
+- `openai_client()` — context manager
 
-### Роутинг моделей
-- `choose_model()` — автоматический выбор модели
-- `maybe_escalate()` — эскалация при невалидном JSON
-- `estimate_tokens()` — оценка токенов
+### Model Routing
+- `choose_model()` — automatic model selection
+- `maybe_escalate()` — escalation on invalid JSON
+- `estimate_tokens()` — token estimation
 
-### Хелперы
-- `parse_json()` — парсинг JSON с диагностикой
-- `extract_web_sources()` — извлечение источников из web search
-- `extract_url_citations()` — извлечение цитат с URL
+### Helpers
+- `parse_json()` — JSON parsing with diagnostics
+- `extract_web_sources()` — extract sources from web search
+- `extract_url_citations()` — extract URL citations
 
-Полный список экспортируемых компонентов см. в `__init__.py` или `OPENAI_CLIENT_DOC.md`.
+See `__init__.py` or `OPENAI_CLIENT_DOC.md` for the full list of exported components.
 
-## Лицензия
+## License
 
-##Версия
-**Версия:** 1.0.0 | **Python:** 3.10+ | **Зависимости:** openai, pyyaml
+## Version
+**Version:** 1.0.0 | **Python:** 3.10+ | **Dependencies:** openai, pyyaml
