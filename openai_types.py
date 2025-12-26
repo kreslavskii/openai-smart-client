@@ -1,4 +1,4 @@
-"""Типы, константы, справочники моделей и роутинг для OpenAI API."""
+"""Types, constants, model registries, and routing for OpenAI API."""
 
 from __future__ import annotations
 
@@ -11,14 +11,14 @@ from typing import Any, Literal, TypedDict
 logger = logging.getLogger(__name__)
 
 # =============================================================================
-# Константы
+# Constants
 # =============================================================================
 
-# Статус-коды для retry
+# Status codes for retry
 _RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 
-# Параметры, запрещённые в текстовом режиме (tool-calling/мультимодальность)
-# При вызове call() эти параметры вызовут ошибку
+# Parameters forbidden in text mode (tool-calling/multimodality)
+# When calling call(), these parameters will raise an error
 _FORBIDDEN_TEXT_KWARGS = frozenset(
     {
         "tools",
@@ -33,17 +33,17 @@ _FORBIDDEN_TEXT_KWARGS = frozenset(
     }
 )
 
-# Допустимые роли в текстовом режиме
+# Allowed roles in text mode
 _ALLOWED_ROLES = frozenset({"system", "user", "assistant"})
 
 
 # =============================================================================
-# Типы
+# Types
 # =============================================================================
 
 
 class ToolChoice(StrEnum):
-    """Стратегия использования инструментов."""
+    """Tool usage strategy."""
 
     AUTO = "auto"
     REQUIRED = "required"
@@ -51,7 +51,7 @@ class ToolChoice(StrEnum):
 
 
 class SearchContextSize(StrEnum):
-    """Размер контекста для Web Search."""
+    """Context size for Web Search."""
 
     LOW = "low"
     MEDIUM = "medium"
@@ -59,15 +59,15 @@ class SearchContextSize(StrEnum):
 
 
 class Message(TypedDict, total=False):
-    """Структура сообщения для Chat Completions API."""
+    """Message structure for Chat Completions API."""
 
     role: Literal["system", "user", "assistant"]
     content: str
-    name: str  # опционально
+    name: str  # optional
 
 
 class ModelCategory(StrEnum):
-    """Категория модели OpenAI."""
+    """OpenAI model category."""
 
     STANDARD = "standard"  # Chat Completions API
     SEARCH = "search"  # Chat Completions + web search
@@ -76,7 +76,7 @@ class ModelCategory(StrEnum):
 
 @dataclass(frozen=True)
 class ModelInfo:
-    """Информация о модели OpenAI."""
+    """OpenAI model information."""
 
     snapshot: str
     category: ModelCategory
@@ -85,11 +85,11 @@ class ModelInfo:
 
 
 # =============================================================================
-# Справочник моделей OpenAI
+# OpenAI Model Registry
 # =============================================================================
 
 MODELS_REGISTRY: dict[str, ModelInfo] = {
-    # Стандартные модели
+    # Standard models
     "gpt-4o": ModelInfo("gpt-4o-2024-11-20", ModelCategory.STANDARD, 2.50, 10.00),
     "gpt-4o-mini": ModelInfo(
         "gpt-4o-mini-2024-07-18", ModelCategory.STANDARD, 0.15, 0.60
@@ -100,7 +100,7 @@ MODELS_REGISTRY: dict[str, ModelInfo] = {
     ),
     "o4-mini": ModelInfo("o4-mini-2025-04-16", ModelCategory.STANDARD, 1.10, 4.40),
     "o3-mini": ModelInfo("o3-mini-2025-01-31", ModelCategory.STANDARD, 1.10, 4.40),
-    # Search-модели
+    # Search models
     "gpt-4o-search-preview": ModelInfo(
         "gpt-4o-search-preview", ModelCategory.SEARCH, 2.50, 10.00
     ),
@@ -119,7 +119,7 @@ MODELS_REGISTRY: dict[str, ModelInfo] = {
     ),
 }
 
-# Обратная совместимость
+# Backward compatibility
 MODELS_ALL: dict[str, str] = {
     alias: info.snapshot for alias, info in MODELS_REGISTRY.items()
 }
@@ -141,35 +141,35 @@ MODELS_DEEP_RESEARCH: dict[str, str] = {
 
 
 # =============================================================================
-# Роутинг моделей
+# Model Routing
 # =============================================================================
 
 
 @dataclass(frozen=True)
 class RoutingConfig:
-    """Конфигурация автоматического выбора модели.
+    """Configuration for automatic model selection.
 
     Attributes:
-        default_cheap: Модель для простых запросов (по умолчанию "gpt-4o-mini").
-        default_capable: Модель для сложных запросов (по умолчанию "gpt-4.1-mini").
-        token_threshold: Порог токенов для выбора capable модели.
-        instruction_chars_threshold: Порог символов инструкций.
-        force_capable_on_strict_schema: Выбирать capable при response_format.
-        high_risk_keywords: Ключевые слова, сигнализирующие о сложности.
+        default_cheap: Model for simple requests (default "gpt-4o-mini").
+        default_capable: Model for complex requests (default "gpt-4.1-mini").
+        token_threshold: Token threshold for selecting capable model.
+        instruction_chars_threshold: Instruction characters threshold.
+        force_capable_on_strict_schema: Select capable with response_format.
+        high_risk_keywords: Keywords signaling complexity.
 
     Warning:
-        При переопределении high_risk_keywords учитывайте:
-        - Слова проверяются через `kw in text.lower()` (подстрока)
-        - Слишком общие слова ("is", "the") вызовут ложные срабатывания
-        - Пустой список отключит критерий сложности инструкций
-        - Неправильные ключевые слова — причина скрытых ошибок роутинга
-        - При проблемах с качеством ответов проверьте логи выбора модели
+        When overriding high_risk_keywords, consider:
+        - Words are checked via `kw in text.lower()` (substring)
+        - Too generic words ("is", "the") will cause false positives
+        - Empty list disables instruction complexity criterion
+        - Incorrect keywords cause hidden routing errors
+        - If response quality issues occur, check model selection logs
 
-        Рекомендация: используйте дефолтные значения, если нет
-        специфических требований к языку или домену.
+        Recommendation: use default values unless you have
+        specific language or domain requirements.
 
     Example:
-        >>> # Добавить доменные термины (сохраняя дефолтные)
+        >>> # Add domain terms (keeping defaults)
         >>> custom_cfg = RoutingConfig(
         ...     high_risk_keywords=RoutingConfig().high_risk_keywords + (
         ...         "compliance", "regulatory", "audit",
@@ -177,13 +177,13 @@ class RoutingConfig:
         ... )
     """
 
-    default_cheap: str = "gpt-4o-mini"  # Дешёвая модель по умолчанию
-    default_capable: str = "gpt-4.1-mini"  # Мощная модель по умолчанию
-    token_threshold: int = 60000  # Порог токенов для capable модели
-    instruction_chars_threshold: int = 1800  # Порог символов инструкций
-    force_capable_on_strict_schema: bool = True  # Выбирать capable при строгой схеме
+    default_cheap: str = "gpt-4o-mini"  # Default cheap model
+    default_capable: str = "gpt-4.1-mini"  # Default capable model
+    token_threshold: int = 60000  # Token threshold for capable model
+    instruction_chars_threshold: int = 1800  # Instruction characters threshold
+    force_capable_on_strict_schema: bool = True  # Select capable with strict schema
     high_risk_keywords: tuple[str, ...] = (
-        # Русский
+        # Russian
         "строго",
         "обязательно",
         "не допускается",
@@ -199,6 +199,7 @@ class RoutingConfig:
         "без галлюцин",
         "только",
         "запрещено",
+        
         # English
         "strict",
         "required",
@@ -219,12 +220,12 @@ class RoutingConfig:
     )
 
 
-# Module-level константа для переиспользования
+# Module-level constant for reuse
 _DEFAULT_ROUTING_CONFIG = RoutingConfig()
 
 
 def estimate_tokens(text: str) -> int:
-    """Приблизительная оценка токенов (~4 символа на токен)."""
+    """Approximate token estimation (~4 characters per token)."""
     return max(1, len(text) // 4) if text else 0
 
 
@@ -236,23 +237,23 @@ def choose_model(
     strict_schema: bool = False,
     cfg: RoutingConfig = _DEFAULT_ROUTING_CONFIG,
 ) -> str:
-    """Автоматический выбор модели по критериям сложности.
+    """Automatic model selection based on complexity criteria.
 
     Args:
-        system_prompt: Системный промпт.
-        user_prompt: Пользовательский промпт.
-        attachments_text: Текст вложений.
-        strict_schema: Используется ли строгая JSON схема.
-        cfg: Конфигурация роутинга.
+        system_prompt: System prompt.
+        user_prompt: User prompt.
+        attachments_text: Attachments text.
+        strict_schema: Whether strict JSON schema is used.
+        cfg: Routing configuration.
 
     Returns:
-        Модель из cfg.default_cheap для простых запросов
-        Модель из cfg.default_capable для сложных/длинных запросов
+        Model from cfg.default_cheap for simple requests
+        Model from cfg.default_capable for complex/long requests
     """
     full_text = f"{system_prompt}\n{user_prompt}\n{attachments_text}".strip()
     token_est = estimate_tokens(full_text)
 
-    # Вычисляем keyword_hits один раз в начале
+    # Calculate keyword_hits once at the start
     instruction_block = f"{system_prompt}\n{user_prompt}"
     keyword_hits = 0
     if len(instruction_block) >= cfg.instruction_chars_threshold:
@@ -262,17 +263,17 @@ def choose_model(
     chosen_model = cfg.default_cheap
     reason = "default"
 
-    # Критерий 1: Размер контекста
+    # Criterion 1: Context size
     if token_est >= cfg.token_threshold:
         chosen_model = cfg.default_capable
         reason = "tokens"
 
-    # Критерий 2: Строгая схема
+    # Criterion 2: Strict schema
     elif strict_schema and cfg.force_capable_on_strict_schema:
         chosen_model = cfg.default_capable
         reason = "strict_schema"
 
-    # Критерий 3: Сложность инструкций
+    # Criterion 3: Instruction complexity
     elif keyword_hits >= 2:
         chosen_model = cfg.default_capable
         reason = "keywords"
@@ -282,7 +283,7 @@ def choose_model(
             "Model routing: tokens=%d, strict=%s, keyword_hits=%d, chosen=%s (reason=%s)",
             token_est,
             strict_schema,
-            keyword_hits,  # Используем уже вычисленное значение
+            keyword_hits,  # Use already calculated value
             chosen_model,
             reason,
         )
@@ -295,17 +296,17 @@ def maybe_escalate(
     strict_schema: bool = False,
     cfg: RoutingConfig = _DEFAULT_ROUTING_CONFIG,
 ) -> str | None:
-    """Эскалация после неудачи: если JSON невалиден, повторить на capable модели.
+    """Escalation after failure: if JSON is invalid, retry with capable model.
 
     Args:
-        output_text: Текст ответа модели.
-        strict_schema: Использовалась ли строгая схема.
-        cfg: Конфигурация роутинга (для выбора capable модели).
+        output_text: Model response text.
+        strict_schema: Whether strict schema was used.
+        cfg: Routing configuration (for selecting capable model).
 
     Returns:
-        Модель из cfg.default_capable если нужна эскалация, None если результат OK.
+        Model from cfg.default_capable if escalation needed, None if result is OK.
 
-    Example (паттерн для pipeline):
+    Example (pattern for pipeline):
         >>> model = choose_model(system_prompt, user_prompt, strict_schema=True)
         >>> result = call_openai(prompt, model=model)
         >>>
@@ -327,22 +328,22 @@ def maybe_escalate(
 
 
 def _get_output_list(response: Any) -> list[dict[str, Any]]:
-    """Извлекает output list из ответа Responses API."""
+    """Extract output list from Responses API response."""
     payload = response.model_dump() if hasattr(response, "model_dump") else response
     output = payload.get("output") if isinstance(payload, dict) else None
     return output if isinstance(output, list) else []
 
 
 def extract_web_sources(response: Any) -> list[dict[str, Any]]:
-    """Извлекает источники (sources) из ответа Responses API с Web Search.
+    """Extract sources from Responses API response with Web Search.
 
-    Для работы требуется запрос с include_sources=True (или include=["web_search_call.action.sources"]).
+    Requires request with include_sources=True (or include=["web_search_call.action.sources"]).
 
     Args:
-        response: Сырой ответ от Responses API (return_raw=True).
+        response: Raw response from Responses API (return_raw=True).
 
     Returns:
-        Список источников [{url, title, snippet, ...}, ...].
+        List of sources [{url, title, snippet, ...}, ...].
 
     Example:
         >>> raw = call_openai_web_search("...", return_raw=True, include_sources=True)
@@ -364,13 +365,13 @@ def extract_web_sources(response: Any) -> list[dict[str, Any]]:
 
 
 def extract_url_citations(response: Any) -> list[dict[str, Any]]:
-    """Извлекает url_citation аннотации (inline citations) из ответа Responses API.
+    """Extract url_citation annotations (inline citations) from Responses API response.
 
     Args:
-        response: Сырой ответ от Responses API (return_raw=True).
+        response: Raw response from Responses API (return_raw=True).
 
     Returns:
-        Список цитат [{url, title, start_index, end_index, ...}, ...].
+        List of citations [{url, title, start_index, end_index, ...}, ...].
 
     Example:
         >>> raw = call_openai_web_search("...", return_raw=True)
@@ -397,23 +398,23 @@ def extract_url_citations(response: Any) -> list[dict[str, Any]]:
 
 
 __all__ = [
-    # Константы
+    # Constants
     "_RETRYABLE_STATUS_CODES",
     "_FORBIDDEN_TEXT_KWARGS",
     "_ALLOWED_ROLES",
-    # Типы
+    # Types
     "ToolChoice",
     "SearchContextSize",
     "ModelCategory",
     "Message",
     "ModelInfo",
-    # Справочники
+    # Registries
     "MODELS_REGISTRY",
     "MODELS_ALL",
     "MODELS_STANDARD",
     "MODELS_SEARCH",
     "MODELS_DEEP_RESEARCH",
-    # Роутинг
+    # Routing
     "RoutingConfig",
     "choose_model",
     "maybe_escalate",
