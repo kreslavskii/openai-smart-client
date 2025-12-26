@@ -1,4 +1,4 @@
-"""Клиент OpenAI API (класс OpenAIClient и контекстный менеджер)."""
+"""OpenAI API client (OpenAIClient class and context manager)."""
 
 from __future__ import annotations
 
@@ -21,31 +21,33 @@ try:
     )
 except ImportError as err:
     raise ImportError(
-        "Библиотека openai не установлена. Установите: pip install openai"
+        "The openai library is not installed. Install it: pip install openai"
     ) from err
 
-from .openai_types import (
-    _RETRYABLE_STATUS_CODES,
-    _FORBIDDEN_TEXT_KWARGS,
-    _ALLOWED_ROLES,
-    Message,
-    ToolChoice,
-    SearchContextSize,
-    MODELS_REGISTRY,
-    choose_model,
-)
 from .openai_config import (
     OpenAIConfig,
     WebSearchConfig,
     _resolve_config,
+)
+from .openai_config import (
     parse_json as _parse_json,
+)
+from .openai_types import (
+    _ALLOWED_ROLES,
+    _FORBIDDEN_TEXT_KWARGS,
+    _RETRYABLE_STATUS_CODES,
+    MODELS_REGISTRY,
+    Message,
+    SearchContextSize,
+    ToolChoice,
+    choose_model,
 )
 
 logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# Helper функции
+# Helper Functions
 # =============================================================================
 
 
@@ -54,16 +56,16 @@ def _get_or_create_client(
     config: OpenAIConfig | None,
     config_path: str | Path | None,
 ) -> tuple["OpenAIClient", bool]:
-    """Возвращает (клиент, own_client) для управления жизненным циклом.
+    """Return (client, own_client) for lifecycle management.
 
     Args:
-        client: Переиспользуемый клиент (если передан).
-        config: Конфигурация для создания нового клиента.
-        config_path: Путь к YAML файлу конфигурации.
+        client: Reusable client (if provided).
+        config: Configuration for creating new client.
+        config_path: Path to YAML configuration file.
 
     Returns:
-        Кортеж (клиент, own_client), где own_client=True означает,
-        что клиент был создан внутри функции и должен быть закрыт.
+        Tuple (client, own_client), where own_client=True means
+        the client was created internally and should be closed.
     """
     if client is not None:
         return client, False
@@ -72,35 +74,35 @@ def _get_or_create_client(
 
 
 # =============================================================================
-# Клиент OpenAI
+# OpenAI Client
 # =============================================================================
 
 
 class OpenAIClient:
-    """Клиент для работы с OpenAI API."""
+    """Client for working with OpenAI API."""
 
     def __init__(self, config: OpenAIConfig | None = None):
-        """Инициализация клиента OpenAI.
+        """Initialize OpenAI client.
 
         Args:
-            config: Конфигурация. Если None, используются значения по умолчанию.
+            config: Configuration. If None, defaults are used.
 
         Raises:
-            ValueError: API ключ не найден.
+            ValueError: API key not found.
         """
         self.config = config or OpenAIConfig()
 
         api_key = self.config.api_key or os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError(
-                "API ключ не найден. Установите OPENAI_API_KEY "
-                "или передайте api_key в конфигурации."
+                "API key not found. Set OPENAI_API_KEY "
+                "or pass api_key in configuration."
             )
 
         client_kwargs: dict[str, Any] = {
             "api_key": api_key,
             "timeout": self.config.timeout,
-            "max_retries": 0,  # Отключаем SDK retry, используем свой
+            "max_retries": 0,  # Disable SDK retry, use our own
         }
 
         if self.config.base_url:
@@ -111,14 +113,14 @@ class OpenAIClient:
         self.client = OpenAI(**client_kwargs)
 
     def close(self) -> None:
-        """Закрывает HTTP клиент."""
+        """Close HTTP client."""
         try:
             self.client.close()
         except Exception:
             pass
 
     def _merge_params(self, kwargs: dict[str, Any]) -> dict[str, Any]:
-        """Объединяет параметры: kwargs > defaults > config."""
+        """Merge parameters: kwargs > defaults > config."""
         defaults = self.config.defaults or {}
         result = {
             **defaults,
@@ -131,11 +133,11 @@ class OpenAIClient:
                 "max_completion_tokens", self.config.max_completion_tokens
             )
 
-        # Валидация модели
+        # Model validation
         model = result.get("model", self.config.model)
         if model not in MODELS_REGISTRY:
             if not any(model.startswith(p) for p in ("gpt-", "o3-", "o4-", "ft:")):
-                logger.warning("Неизвестная модель: %s (возможно опечатка)", model)
+                logger.warning("Unknown model: %s (possible typo)", model)
 
         return result
 
@@ -144,30 +146,30 @@ class OpenAIClient:
         messages: list[Message],
         request_params: dict[str, Any],
     ) -> None:
-        """Валидация режима 'только текст'.
+        """Validate 'text-only' mode.
 
-        Запрещает tool-calling/мультимодальные параметры.
-        Проверяет, что каждое сообщение имеет content=str.
+        Forbids tool-calling/multimodal parameters.
+        Checks that each message has content=str.
         """
         forbidden = _FORBIDDEN_TEXT_KWARGS.intersection(request_params.keys())
         if forbidden:
             raise ValueError(
-                f"Запрещённые параметры для текстового режима: {sorted(forbidden)}. "
-                "Используйте call_web_search() для инструментов или return_raw=True."
+                f"Forbidden parameters for text mode: {sorted(forbidden)}. "
+                "Use call_web_search() for tools or return_raw=True."
             )
 
         for i, m in enumerate(messages):
             if not isinstance(m, dict):
-                raise ValueError(f"messages[{i}] должен быть dict")
+                raise ValueError(f"messages[{i}] must be dict")
             role = m.get("role")
             if role not in _ALLOWED_ROLES:
                 raise ValueError(
-                    f"messages[{i}].role должен быть одним из {sorted(_ALLOWED_ROLES)}"
+                    f"messages[{i}].role must be one of {sorted(_ALLOWED_ROLES)}"
                 )
             content = m.get("content")
             if not isinstance(content, str):
                 raise ValueError(
-                    f"messages[{i}].content должен быть строкой (текст-only режим)"
+                    f"messages[{i}].content must be string (text-only mode)"
                 )
 
     def _build_messages(
@@ -176,18 +178,18 @@ class OpenAIClient:
         system_prompt: str | None = None,
         messages: list[Message] | None = None,
     ) -> list[Message]:
-        """Строит список messages.
+        """Build messages list.
 
         Args:
-            prompt: Пользовательский промпт.
-            system_prompt: Системный промпт.
-            messages: Готовый список сообщений.
+            prompt: User prompt.
+            system_prompt: System prompt.
+            messages: Ready message list.
 
         Returns:
-            Список сообщений для API.
+            Message list for API.
 
         Raises:
-            ValueError: Некорректные параметры.
+            ValueError: Invalid parameters.
         """
         if messages is not None:
             return messages
@@ -200,12 +202,12 @@ class OpenAIClient:
 
         if not result:
             raise ValueError(
-                "Необходимо указать prompt или messages с хотя бы одним сообщением"
+                "Must specify prompt or messages with at least one message"
             )
         return result
 
     def _calc_wait_time(self, attempt: int) -> float:
-        """Вычисляет время ожидания для retry с jitter."""
+        """Calculate wait time for retry with jitter."""
         base = self.config.retry_delay * (2**attempt)
         base = min(base, self.config.max_retry_delay)
         jitter = 1.0 + random.random() * 0.1  # +0-10%
@@ -216,21 +218,21 @@ class OpenAIClient:
         request_params: dict[str, Any],
         use_responses_api: bool = False,
     ) -> Any:
-        """Выполняет запрос с retry логикой.
+        """Execute request with retry logic.
 
         Args:
-            request_params: Параметры запроса.
-            use_responses_api: Использовать Responses API вместо Chat Completions.
+            request_params: Request parameters.
+            use_responses_api: Use Responses API instead of Chat Completions.
 
         Returns:
-            Ответ от API.
+            API response.
 
         Raises:
-            RateLimitError: Превышен лимит запросов.
-            APIConnectionError: Ошибка соединения.
-            APITimeoutError: Таймаут запроса.
-            APIStatusError: Ошибка HTTP статуса.
-            APIError: Ошибка API.
+            RateLimitError: Rate limit exceeded.
+            APIConnectionError: Connection error.
+            APITimeoutError: Request timeout.
+            APIStatusError: HTTP status error.
+            APIError: API error.
         """
         attempts = max(1, int(self.config.max_retries))
         for attempt in range(attempts):
@@ -327,43 +329,43 @@ class OpenAIClient:
         resolve_snapshot: bool = False,
         **kwargs: Any,
     ) -> str | Iterator[str] | Any:
-        """Вызывает модель OpenAI через Chat Completions API.
+        """Call OpenAI model via Chat Completions API.
 
         Args:
-            prompt: Пользовательский промпт.
-            system_prompt: Системный промпт.
-            messages: Список сообщений (альтернатива prompt/system_prompt).
-            stream: Если True, возвращает итератор.
-            return_raw: Если True, возвращает сырой объект ответа.
-            auto_model: Автоматический выбор модели по сложности запроса.
-            resolve_snapshot: Заменить alias модели на snapshot (детерминированность).
-            **kwargs: Все параметры OpenAI Chat Completions API.
+            prompt: User prompt.
+            system_prompt: System prompt.
+            messages: Message list (alternative to prompt/system_prompt).
+            stream: If True, returns iterator.
+            return_raw: If True, returns raw response object.
+            auto_model: Automatic model selection based on request complexity.
+            resolve_snapshot: Replace model alias with snapshot (determinism).
+            **kwargs: All OpenAI Chat Completions API parameters.
 
         Returns:
-            Текст ответа, итератор при stream=True, или сырой объект при return_raw=True.
+            Response text, iterator if stream=True, or raw object if return_raw=True.
 
         Raises:
-            ValueError: Некорректные параметры или ответ содержит tool_calls.
-            APIError: Ошибка OpenAI API.
+            ValueError: Invalid parameters or response contains tool_calls.
+            APIError: OpenAI API error.
 
         See Also:
             https://platform.openai.com/docs/api-reference/chat/create
         """
-        # Строим messages один раз
+        # Build messages once
         msgs = self._build_messages(prompt, system_prompt, messages)
 
-        # Автовыбор модели (использует уже построенные msgs)
+        # Auto model selection (uses already built msgs)
         if auto_model and "model" not in kwargs:
             strict = "response_format" in kwargs
             if messages is None:
-                # Передаём только исходные промпты (без дублирования)
+                # Pass only original prompts (no duplication)
                 kwargs["model"] = choose_model(
                     system_prompt=system_prompt or "",
                     user_prompt=prompt or "",
                     strict_schema=strict,
                 )
             else:
-                # Передаём полный текст как attachments_text (без дублирования)
+                # Pass full text as attachments_text (no duplication)
                 full_text = "\n".join(m.get("content", "") for m in msgs)
                 kwargs["model"] = choose_model(
                     attachments_text=full_text,
@@ -372,13 +374,13 @@ class OpenAIClient:
 
         request_params = self._merge_params(kwargs)
 
-        # Разрешение snapshot
+        # Snapshot resolution
         if resolve_snapshot:
             model = request_params.get("model", self.config.model)
             if model in MODELS_REGISTRY:
                 request_params["model"] = MODELS_REGISTRY[model].snapshot
 
-        # Валидация текст-only режима (если не return_raw)
+        # Text-only mode validation (if not return_raw)
         if not return_raw:
             self._validate_text_only(msgs, request_params)
 
@@ -397,7 +399,7 @@ class OpenAIClient:
             return response
 
         if not response.choices:
-            raise ValueError("Ответ от API не содержит choices")
+            raise ValueError("API response contains no choices")
 
         msg = response.choices[0].message
         content = msg.content
@@ -406,10 +408,10 @@ class OpenAIClient:
             tool_calls = getattr(msg, "tool_calls", None)
             if tool_calls:
                 raise ValueError(
-                    "Ответ содержит tool_calls при content=None. "
-                    "Используйте return_raw=True и обработайте tool_calls."
+                    "Response contains tool_calls with content=None. "
+                    "Use return_raw=True and handle tool_calls."
                 )
-            raise ValueError("Ответ от API не содержит content")
+            raise ValueError("API response contains no content")
 
         return content
 
@@ -425,27 +427,27 @@ class OpenAIClient:
         resolve_snapshot: bool = False,
         **kwargs: Any,
     ) -> Any:
-        """Вызов с ожиданием JSON в content (structured outputs).
+        """Call expecting JSON in content (structured outputs).
 
         Args:
-            prompt: Пользовательский промпт.
-            system_prompt: Системный промпт.
-            messages: Список сообщений.
-            response_format: Формат ответа (json_object или json_schema).
-            parse: Если True, парсит JSON и возвращает объект.
-            auto_model: Автоматический выбор модели по сложности запроса.
-            resolve_snapshot: Заменить alias модели на snapshot (детерминированность).
-            **kwargs: Дополнительные параметры API.
+            prompt: User prompt.
+            system_prompt: System prompt.
+            messages: Message list.
+            response_format: Response format (json_object or json_schema).
+            parse: If True, parses JSON and returns object.
+            auto_model: Automatic model selection based on request complexity.
+            resolve_snapshot: Replace model alias with snapshot (determinism).
+            **kwargs: Additional API parameters.
 
         Returns:
-            Распарсенный JSON (parse=True) или JSON-строка (parse=False).
+            Parsed JSON (parse=True) or JSON string (parse=False).
 
         Raises:
-            ValueError: Невалидный JSON или некорректные параметры.
+            ValueError: Invalid JSON or incorrect parameters.
         """
         if kwargs.get("stream") is True:
             raise ValueError(
-                "call_structured не поддерживает stream=True (нужен цельный JSON)"
+                "call_structured does not support stream=True (needs complete JSON)"
             )
 
         text = self.call(
@@ -461,7 +463,7 @@ class OpenAIClient:
         )
 
         if not isinstance(text, str):
-            raise ValueError("Ожидалась строка, но получен нестроковый результат")
+            raise ValueError("Expected string, but got non-string result")
 
         return _parse_json(text) if parse else text
 
@@ -479,38 +481,38 @@ class OpenAIClient:
         resolve_snapshot: bool = False,
         **kwargs: Any,
     ) -> str | Any:
-        """Вызывает модель OpenAI с Web Search через Responses API.
+        """Call OpenAI model with Web Search via Responses API.
 
         Args:
-            prompt: Пользовательский промпт.
-            system_prompt: Системный промпт.
-            messages: Список сообщений (альтернатива prompt/system_prompt).
-            model: Модель (по умолчанию из конфига).
-            tool_choice: Стратегия использования web_search: "auto", "required", "none".
-            search_context_size: Размер контекста поиска: "low", "medium", "high".
-            user_location: Локация пользователя для персонализации результатов.
-            include_sources: Если True, запрашивает полный список источников.
-                Используйте extract_web_sources(response) для извлечения URL.
-            return_raw: Если True, возвращает сырой объект ответа.
-            resolve_snapshot: Заменить alias модели на snapshot (детерминированность).
-            **kwargs: Дополнительные параметры Responses API.
+            prompt: User prompt.
+            system_prompt: System prompt.
+            messages: Message list (alternative to prompt/system_prompt).
+            model: Model (default from config).
+            tool_choice: Strategy for using web_search: "auto", "required", "none".
+            search_context_size: Search context size: "low", "medium", "high".
+            user_location: User location for result personalization.
+            include_sources: If True, requests full list of sources.
+                Use extract_web_sources(response) to extract URLs.
+            return_raw: If True, returns raw response object.
+            resolve_snapshot: Replace model alias with snapshot (determinism).
+            **kwargs: Additional Responses API parameters.
 
         Returns:
-            Текст ответа или сырой объект при return_raw=True.
-            При return_raw=True ответ содержит url_citation аннотации.
-            При include_sources=True и return_raw=True — также содержит sources.
+            Response text or raw object if return_raw=True.
+            With return_raw=True, response contains url_citation annotations.
+            With include_sources=True and return_raw=True — also contains sources.
 
         Raises:
-            ValueError: Некорректные параметры.
-            APIError: Ошибка OpenAI API.
+            ValueError: Invalid parameters.
+            APIError: OpenAI API error.
 
         See Also:
             https://platform.openai.com/docs/guides/tools-web-search
         """
-        # Собираем input для Responses API (переиспользуем _build_messages)
+        # Build input for Responses API (reuse _build_messages)
         input_content = self._build_messages(prompt, system_prompt, messages)
 
-        # Получаем настройки web_search из конфига или параметров
+        # Get web_search settings from config or parameters
         ws_config = self.config.web_search or WebSearchConfig()
 
         effective_tool_choice = tool_choice or ws_config.tool_choice
@@ -519,12 +521,12 @@ class OpenAIClient:
         )
         effective_user_location = user_location or ws_config.user_location
 
-        # Определяем модель с учётом resolve_snapshot
+        # Determine model with resolve_snapshot consideration
         effective_model = model or self.config.model
         if resolve_snapshot and effective_model in MODELS_REGISTRY:
             effective_model = MODELS_REGISTRY[effective_model].snapshot
 
-        # Формируем web_search tool
+        # Build web_search tool
         web_search_tool: dict[str, Any] = {
             "type": "web_search",
             "search_context_size": effective_search_context_size,
@@ -532,7 +534,7 @@ class OpenAIClient:
         if effective_user_location:
             web_search_tool["user_location"] = effective_user_location
 
-        # Параметры запроса
+        # Request parameters
         request_params: dict[str, Any] = {
             "model": effective_model,
             "input": input_content,
@@ -540,11 +542,11 @@ class OpenAIClient:
             **kwargs,
         }
 
-        # tool_choice для Responses API
+        # tool_choice for Responses API
         if effective_tool_choice != "auto":
             request_params["tool_choice"] = effective_tool_choice
 
-        # include_sources для получения списка URL
+        # include_sources to get URL list
         if include_sources:
             include_list = list(request_params.get("include") or [])
             if "web_search_call.action.sources" not in include_list:
@@ -556,33 +558,33 @@ class OpenAIClient:
         if return_raw:
             return response
 
-        # Извлекаем текстовый ответ из Responses API
+        # Extract text response from Responses API
         return self._extract_responses_content(response)
 
     def _extract_responses_content(self, response: Any) -> str:
-        """Извлекает текстовый контент из ответа Responses API.
+        """Extract text content from Responses API response.
 
         Args:
-            response: Ответ от Responses API.
+            response: Response from Responses API.
 
         Returns:
-            Текстовый контент ответа.
+            Text content of response.
 
         Raises:
-            ValueError: Не удалось извлечь контент.
+            ValueError: Could not extract content.
         """
-        # Responses API возвращает output как список элементов
+        # Responses API returns output as list of items
         output = getattr(response, "output", None)
         if not output:
-            raise ValueError("Ответ Responses API не содержит output")
+            raise ValueError("Responses API response contains no output")
 
-        # Ищем message с текстом
+        # Find message with text
         for item in output:
             item_type = getattr(item, "type", None)
             if item_type == "message":
                 content = getattr(item, "content", None)
                 if content:
-                    # content может быть списком частей
+                    # content can be a list of parts
                     if isinstance(content, list):
                         texts = []
                         for part in content:
@@ -593,10 +595,10 @@ class OpenAIClient:
                     elif isinstance(content, str):
                         return content
 
-        raise ValueError("Не удалось извлечь текстовый контент из ответа")
+        raise ValueError("Could not extract text content from response")
 
     def _stream_response(self, stream: Any) -> Iterator[str]:
-        """Обрабатывает streaming ответ."""
+        """Process streaming response."""
         for chunk in stream:
             if not chunk.choices:
                 continue
@@ -606,7 +608,7 @@ class OpenAIClient:
 
 
 # =============================================================================
-# Контекстный менеджер
+# Context Manager
 # =============================================================================
 
 
@@ -615,19 +617,19 @@ def openai_client(
     config: OpenAIConfig | None = None,
     config_path: str | Path | None = None,
 ):
-    """Контекстный менеджер для создания клиента.
+    """Context manager for creating client.
 
     Args:
-        config: Готовая конфигурация.
-        config_path: Путь к YAML файлу.
+        config: Ready configuration.
+        config_path: Path to YAML file.
 
     Yields:
-        Экземпляр OpenAIClient.
+        OpenAIClient instance.
 
     Example:
         >>> with openai_client() as client:
-        ...     response = client.call("Привет")
-        ...     search_result = client.call_web_search("Погода в Москве")
+        ...     response = client.call("Hello")
+        ...     search_result = client.call_web_search("Weather in Moscow")
     """
     resolved_config = _resolve_config(config, config_path)
     client = OpenAIClient(resolved_config)
