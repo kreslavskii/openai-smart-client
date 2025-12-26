@@ -1,22 +1,22 @@
-"""Универсальный модуль для работы с OpenAI API.
+"""Universal module for working with OpenAI API.
 
-⚠️ ДЛЯ AI АГЕНТОВ: Перед использованием модуля прочитайте файл `00_AGENT_INSTRUCTIONS.md`
-   в директории модуля. Там содержится полная документация для автоматического использования.
+⚠️ FOR AI AGENTS: Before using the module, read the file `00_AGENT_INSTRUCTIONS.md`
+   in the module directory. It contains complete documentation for automatic use.
 
-Этот модуль предоставляет удобный интерфейс для вызова моделей OpenAI
-с поддержкой автоматического выбора модели, Web Search, structured outputs
-и других возможностей API.
+This module provides a convenient interface for calling OpenAI models
+with support for automatic model selection, Web Search, structured outputs,
+and other API capabilities.
 
-Основные компоненты:
-- OpenAIClient: класс для работы с OpenAI API
-- call_openai(): функциональный API для простых вызовов
-- call_openai_structured(): вызовы с JSON structured outputs
-- call_openai_web_search(): вызовы с Web Search через Responses API
-- RoutingConfig: конфигурация автоматического выбора модели
+Main components:
+- OpenAIClient: class for working with OpenAI API
+- call_openai(): functional API for simple calls
+- call_openai_structured(): calls with JSON structured outputs
+- call_openai_web_search(): calls with Web Search via Responses API
+- RoutingConfig: configuration for automatic model selection
 
 Example:
     >>> from openai_client_module import call_openai
-    >>> result = call_openai("Привет, как дела?")
+    >>> result = call_openai("Hello, how are you?")
     >>> print(result)
 """
 
@@ -55,30 +55,30 @@ from .openai_types import (
 )
 
 __all__ = [
-    # Типы
+    # Types
     "ToolChoice",
     "SearchContextSize",
     "ModelCategory",
     "Message",
     "ModelInfo",
-    # Справочники
+    # Registries
     "MODELS_REGISTRY",
     "MODELS_ALL",
     "MODELS_STANDARD",
     "MODELS_SEARCH",
     "MODELS_DEEP_RESEARCH",
-    # Роутинг
+    # Routing
     "RoutingConfig",
     "choose_model",
     "maybe_escalate",
     "estimate_tokens",
-    # Конфигурация
+    # Configuration
     "WebSearchConfig",
     "OpenAIConfig",
-    # Клиент
+    # Client
     "OpenAIClient",
     "openai_client",
-    # Функциональный API
+    # Functional API
     "call_openai",
     "call_openai_structured",
     "call_openai_web_search",
@@ -86,7 +86,7 @@ __all__ = [
     # Helpers
     "extract_web_sources",
     "extract_url_citations",
-    # JSON parsing (для Schema-модуля)
+    # JSON parsing (for Schema module)
     "parse_json",
 ]
 
