@@ -1,4 +1,4 @@
-"""Функциональный API для OpenAI (call_openai_* функции и CLI)."""
+"""Functional API for OpenAI (call_openai_* functions and CLI)."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ try:
     from openai import APIError
 except ImportError as err:
     raise ImportError(
-        "Библиотека openai не установлена. Установите: pip install openai"
+        "The openai library is not installed. Install it: pip install openai"
     ) from err
 
 from .openai_client import (
@@ -26,7 +26,7 @@ from .openai_types import (
 )
 
 # =============================================================================
-# Функциональный API
+# Functional API
 # =============================================================================
 
 
@@ -110,37 +110,37 @@ def call_openai(
     client: OpenAIClient | None = None,
     **kwargs: Any,
 ) -> str | Iterator[str] | Any:
-    """Вызов OpenAI API через Chat Completions.
+    """Call OpenAI API via Chat Completions.
 
-    Для web search можно использовать search-модели:
+    For web search, you can use search models:
     - gpt-4o-search-preview
     - gpt-4o-mini-search-preview
-    - gpt-5-search-api (может требовать верификации)
+    - gpt-5-search-api (may require verification)
 
     Args:
-        prompt: Пользовательский промпт.
-        system_prompt: Системный промпт.
-        messages: Список сообщений (альтернатива prompt/system_prompt).
-        model: Модель для использования.
-        temperature: Температура генерации.
-        max_completion_tokens: Максимальное количество токенов.
-        max_tokens: Устаревший параметр, используйте max_completion_tokens.
-        stream: Если True, возвращает итератор.
-        return_raw: Если True, возвращает сырой объект ответа.
-        auto_model: Автоматический выбор модели по сложности запроса.
-        resolve_snapshot: Заменить alias модели на snapshot (детерминированность).
-        config: Конфигурация.
-        config_path: Путь к YAML файлу конфигурации.
-        client: Переиспользуемый клиент (для batch операций).
-            При передаче client игнорируются config/config_path.
-        **kwargs: Все параметры OpenAI Chat Completions API.
+        prompt: User prompt.
+        system_prompt: System prompt.
+        messages: List of messages (alternative to prompt/system_prompt).
+        model: Model to use.
+        temperature: Generation temperature.
+        max_completion_tokens: Maximum number of tokens.
+        max_tokens: Deprecated parameter, use max_completion_tokens.
+        stream: If True, returns an iterator.
+        return_raw: If True, returns raw response object.
+        auto_model: Automatic model selection based on request complexity.
+        resolve_snapshot: Replace model alias with snapshot (determinism).
+        config: Configuration.
+        config_path: Path to YAML configuration file.
+        client: Reusable client (for batch operations).
+            When client is passed, config/config_path are ignored.
+        **kwargs: All OpenAI Chat Completions API parameters.
 
     Returns:
-        Текст ответа, итератор при stream=True, или сырой объект при return_raw=True.
+        Response text, iterator if stream=True, or raw object if return_raw=True.
 
     Raises:
-        ValueError: Некорректные параметры.
-        APIError: Ошибка OpenAI API.
+        ValueError: Invalid parameters.
+        APIError: OpenAI API error.
 
     See Also:
         https://platform.openai.com/docs/api-reference/chat/create
@@ -148,14 +148,14 @@ def call_openai(
     # Deprecated max_tokens
     if max_tokens is not None:
         warnings.warn(
-            "max_tokens устарел, используйте max_completion_tokens",
+            "max_tokens is deprecated, use max_completion_tokens",
             DeprecationWarning,
             stacklevel=2,
         )
         if max_completion_tokens is None:
             max_completion_tokens = max_tokens
 
-    # Переиспользование клиента или создание нового
+    # Client reuse or creation
     _client, own_client = _get_or_create_client(client, config, config_path)
 
     if model is not None:
@@ -165,7 +165,7 @@ def call_openai(
     if max_completion_tokens is not None:
         kwargs["max_completion_tokens"] = max_completion_tokens
 
-    # При stream=True оборачиваем итератор для корректного закрытия клиента
+    # For stream=True, wrap iterator for proper client closure
     if stream:
         iterator = _client.call(
             prompt=prompt,
@@ -188,7 +188,7 @@ def call_openai(
 
         return _gen()
 
-    # При stream=False закрываем клиент после вызова (если создали сами)
+    # For stream=False, close client after call (if we created it)
     try:
         return _client.call(
             prompt=prompt,
@@ -222,33 +222,33 @@ def call_openai_structured(
     client: OpenAIClient | None = None,
     **kwargs: Any,
 ) -> Any:
-    """Вызов OpenAI API с ожиданием JSON (structured outputs).
+    """Call OpenAI API expecting JSON (structured outputs).
 
     Args:
-        prompt: Пользовательский промпт.
-        system_prompt: Системный промпт.
-        messages: Список сообщений.
-        response_format: Формат ответа (json_object или json_schema).
-        parse: Если True, парсит JSON и возвращает объект.
-        model: Модель.
-        temperature: Температура.
-        max_completion_tokens: Максимум токенов.
-        auto_model: Автоматический выбор модели по сложности запроса.
-        resolve_snapshot: Заменить alias модели на snapshot (детерминированность).
-        config: Конфигурация.
-        config_path: Путь к YAML файлу.
-        client: Переиспользуемый клиент (для batch операций).
-        **kwargs: Дополнительные параметры API.
+        prompt: User prompt.
+        system_prompt: System prompt.
+        messages: List of messages.
+        response_format: Response format (json_object or json_schema).
+        parse: If True, parses JSON and returns object.
+        model: Model.
+        temperature: Temperature.
+        max_completion_tokens: Maximum tokens.
+        auto_model: Automatic model selection based on request complexity.
+        resolve_snapshot: Replace model alias with snapshot (determinism).
+        config: Configuration.
+        config_path: Path to YAML file.
+        client: Reusable client (for batch operations).
+        **kwargs: Additional API parameters.
 
     Returns:
-        Распарсенный JSON (parse=True) или JSON-строка (parse=False).
+        Parsed JSON (parse=True) or JSON string (parse=False).
 
     Raises:
-        ValueError: Невалидный JSON или некорректные параметры.
+        ValueError: Invalid JSON or incorrect parameters.
 
     Example:
         >>> obj = call_openai_structured(
-        ...     prompt="Верни JSON с полями name и age",
+        ...     prompt="Return JSON with name and age fields",
         ...     response_format={"type": "json_object"},
         ... )
     """
@@ -293,58 +293,58 @@ def call_openai_web_search(
     client: OpenAIClient | None = None,
     **kwargs: Any,
 ) -> str | Any:
-    """Вызов OpenAI API с Web Search через Responses API.
+    """Call OpenAI API with Web Search via Responses API.
 
-    Это рекомендуемый современный способ использования web search.
-    Модель сама решает, когда искать в интернете (tool_choice="auto"),
-    или можно принудительно направить к поиску (tool_choice="required").
+    This is the recommended modern way to use web search.
+    The model decides when to search the internet (tool_choice="auto"),
+    or you can force search (tool_choice="required").
 
     Args:
-        prompt: Пользовательский промпт.
-        system_prompt: Системный промпт.
-        messages: Список сообщений.
-        model: Модель (gpt-4o, gpt-4.1, o4-mini и др.).
-        tool_choice: Стратегия использования web_search:
-            - "auto" - модель сама решает искать или нет
-            - "required" - принудительный поиск
-            - "none" - отключить поиск
-        search_context_size: Размер контекста поиска:
-            - "low" - минимум контекста, быстрее
-            - "medium" - баланс (по умолчанию)
-            - "high" - максимум контекста, медленнее
-        user_location: Локация для персонализации результатов:
-            {"type": "approximate", "country": "RU", "city": "Moscow", ...}
-        include_sources: Если True, запрашивает полный список источников.
-            Используйте extract_web_sources(response) для извлечения URL.
-        return_raw: Если True, возвращает сырой объект с url_citation аннотациями.
-        resolve_snapshot: Заменить alias модели на snapshot (детерминированность).
-        config: Конфигурация.
-        config_path: Путь к YAML файлу конфигурации.
-        client: Переиспользуемый клиент (для batch операций).
-        **kwargs: Дополнительные параметры Responses API.
+        prompt: User prompt.
+        system_prompt: System prompt.
+        messages: List of messages.
+        model: Model (gpt-4o, gpt-4.1, o4-mini, etc.).
+        tool_choice: Strategy for using web_search:
+            - "auto" - model decides whether to search
+            - "required" - forced search
+            - "none" - disable search
+        search_context_size: Search context size:
+            - "low" - minimal context, faster
+            - "medium" - balanced (default)
+            - "high" - maximum context, slower
+        user_location: User location for result personalization:
+            {"type": "approximate", "country": "US", "city": "New York", ...}
+        include_sources: If True, requests full list of sources.
+            Use extract_web_sources(response) to extract URLs.
+        return_raw: If True, returns raw object with url_citation annotations.
+        resolve_snapshot: Replace model alias with snapshot (determinism).
+        config: Configuration.
+        config_path: Path to YAML configuration file.
+        client: Reusable client (for batch operations).
+        **kwargs: Additional Responses API parameters.
 
     Returns:
-        Текст ответа или сырой объект при return_raw=True.
+        Response text or raw object if return_raw=True.
 
     Raises:
-        ValueError: Некорректные параметры.
-        APIError: Ошибка OpenAI API.
+        ValueError: Invalid parameters.
+        APIError: OpenAI API error.
 
     See Also:
         https://platform.openai.com/docs/guides/tools-web-search
 
     Example:
-        >>> # Простой поиск
-        >>> result = call_openai_web_search("Какая погода в Москве сегодня?")
+        >>> # Simple search
+        >>> result = call_openai_web_search("What's the weather in Moscow today?")
 
-        >>> # Принудительный поиск с локацией
+        >>> # Forced search with location
         >>> result = call_openai_web_search(
-        ...     "Последние новости",
+        ...     "Latest news",
         ...     tool_choice=ToolChoice.REQUIRED,
-        ...     user_location={"type": "approximate", "country": "RU"},
+        ...     user_location={"type": "approximate", "country": "US"},
         ... )
 
-        >>> # Получить сырой ответ с источниками
+        >>> # Get raw response with sources
         >>> raw = call_openai_web_search("...", return_raw=True, include_sources=True)
         >>> sources = extract_web_sources(raw)
         >>> citations = extract_url_citations(raw)
@@ -376,30 +376,30 @@ def call_openai_markdown(
     messages: list[Message] | None = None,
     **kwargs: Any,
 ) -> str:
-    """Вызывает OpenAI с форматированием Markdown.
+    """Call OpenAI with Markdown formatting.
 
     Args:
-        prompt: Пользовательский промпт.
-        system_prompt: Системный промпт.
-        messages: Список сообщений.
-        **kwargs: Все параметры OpenAI API.
+        prompt: User prompt.
+        system_prompt: System prompt.
+        messages: List of messages.
+        **kwargs: All OpenAI API parameters.
 
     Returns:
-        Ответ в формате Markdown.
+        Response in Markdown format.
 
     Raises:
-        ValueError: Если передан response_format (несовместимо с Markdown).
+        ValueError: If response_format is passed (incompatible with Markdown).
     """
-    # Проверка несовместимости с response_format
+    # Check incompatibility with response_format
     if "response_format" in kwargs:
         raise ValueError(
-            "call_openai_markdown несовместим с response_format (structured outputs). "
-            "Используйте call_openai_structured() для JSON."
+            "call_openai_markdown is incompatible with response_format (structured outputs). "
+            "Use call_openai_structured() for JSON."
         )
 
     markdown_instruction = (
-        "Отвечай строго в формате Markdown. Используй заголовки, списки, "
-        "жирный и курсивный текст, блоки кода где это уместно."
+        "Respond strictly in Markdown format. Use headings, lists, "
+        "bold and italic text, code blocks where appropriate."
     )
 
     if messages is None:
@@ -410,7 +410,7 @@ def call_openai_markdown(
         )
         result = call_openai(prompt=prompt, system_prompt=full_system, **kwargs)
         if not isinstance(result, str):
-            raise ValueError("Ожидалась строка в Markdown")
+            raise ValueError("Expected string in Markdown")
         return result
 
     modified = [dict(m) for m in messages]
@@ -421,7 +421,7 @@ def call_openai_markdown(
 
     result = call_openai(messages=modified, **kwargs)
     if not isinstance(result, str):
-        raise ValueError("Ожидалась строка в Markdown")
+        raise ValueError("Expected string in Markdown")
     return result
 
 
@@ -432,21 +432,17 @@ def call_openai_markdown(
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Использование: python -m openai_client_module.openai_api <prompt>")
-        print(
-            "              python -m openai_client_module.openai_api --search <prompt>"
-        )
-        print("              python -m openai_client_module.openai_api --json <prompt>")
+        print("Usage: python -m openai_client_module.openai_api <prompt>")
+        print("       python -m openai_client_module.openai_api --search <prompt>")
+        print("       python -m openai_client_module.openai_api --json <prompt>")
         print()
-        print("Примеры:")
+        print("Examples:")
+        print("  python -m openai_client_module.openai_api 'Explain quantum mechanics'")
         print(
-            "  python -m openai_client_module.openai_api 'Объясни квантовую механику'"
+            "  python -m openai_client_module.openai_api --search 'What is the weather in Moscow?'"
         )
         print(
-            "  python -m openai_client_module.openai_api --search 'Какая погода в Москве?'"
-        )
-        print(
-            "  python -m openai_client_module.openai_api --json 'Верни JSON с полем greeting'"
+            "  python -m openai_client_module.openai_api --json 'Return JSON with greeting field'"
         )
         sys.exit(1)
 
@@ -463,9 +459,9 @@ if __name__ == "__main__":
     user_prompt = " ".join(args)
 
     try:
-        print("Вызов OpenAI API...")
+        print("Calling OpenAI API...")
         if mode == "search":
-            print("(с Web Search)")
+            print("(with Web Search)")
         elif mode == "json":
             print("(JSON mode)")
         print("-" * 60)
@@ -473,27 +469,27 @@ if __name__ == "__main__":
         if mode == "search":
             result = call_openai_web_search(
                 user_prompt,
-                system_prompt="Ты полезный ассистент. Отвечай на русском языке.",
+                system_prompt="You are a helpful assistant. Respond in English.",
             )
         elif mode == "json":
             result = call_openai_structured(
                 user_prompt,
-                system_prompt="Ты полезный ассистент. Возвращай валидный JSON.",
+                system_prompt="You are a helpful assistant. Return valid JSON.",
                 response_format={"type": "json_object"},
-                parse=False,  # Выводим как строку для CLI
+                parse=False,  # Output as string for CLI
             )
         else:
             result = call_openai_markdown(
                 user_prompt,
-                system_prompt="Ты полезный ассистент. Отвечай на русском языке.",
+                system_prompt="You are a helpful assistant. Respond in English.",
             )
 
         print(result)
         print("-" * 60)
-        print("Готово!")
+        print("Done!")
 
     except (APIError, ValueError) as e:
-        print(f"Ошибка: {e}", file=sys.stderr)
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
 
