@@ -1,50 +1,50 @@
-# Конфигурация для универсального OpenAI API клиента
-# Поддерживаемые модели: GPT-4o, GPT-4.1, O-серия, Search-модели, Deep Research
-# Путь к файлу можно указать через переменную окружения OPENAI_CONFIG_PATH
-# или передать напрямую при инициализации клиента
+# Configuration for universal OpenAI API client
+# Supported models: GPT-4o, GPT-4.1, O-series, Search models, Deep Research
+# Path to file can be specified via OPENAI_CONFIG_PATH environment variable
+# or passed directly when initializing the client
 
-# API ключ берётся ТОЛЬКО из переменной окружения OPENAI_API_KEY
-# НИКОГДА не храните API ключи в конфигурационных файлах!
-
-# =============================================================================
-# Основные параметры модели
-# =============================================================================
-
-model: "gpt-4o"  # Модель по умолчанию (см. список моделей ниже)
-temperature: 0.7  # От 0 до 2. Низкие значения = детерминированные ответы
-
-# Параметры токенов
-max_completion_tokens: null  # Актуальный параметр (максимум токенов в ответе)
-max_tokens: null  # Устаревший параметр, оставлен для обратной совместимости
-
-# Параметры подключения
-timeout: 60.0  # Таймаут запроса в секундах
-base_url: null  # Кастомный base URL (для совместимых API)
-organization: null  # ID организации OpenAI
-
-# Параметры retry логики (экспоненциальная задержка с jitter)
-max_retries: 3  # Количество попыток при ошибках
-retry_delay: 1.0  # Базовая задержка между попытками в секундах
-max_retry_delay: 60.0  # Верхний предел задержки (ограничивает экспоненциальный рост)
+# API key is taken ONLY from OPENAI_API_KEY environment variable
+# NEVER store API keys in configuration files!
 
 # =============================================================================
-# Web Search конфигурация (для Responses API)
+# Main Model Parameters
+# =============================================================================
+
+model: "gpt-4o"  # Default model (see model list below)
+temperature: 0.7  # From 0 to 2. Low values = deterministic responses
+
+# Token parameters
+max_completion_tokens: null  # Current parameter (max tokens in response)
+max_tokens: null  # Deprecated parameter, kept for backward compatibility
+
+# Connection parameters
+timeout: 60.0  # Request timeout in seconds
+base_url: null  # Custom base URL (for compatible APIs)
+organization: null  # OpenAI organization ID
+
+# Retry logic parameters (exponential backoff with jitter)
+max_retries: 3  # Number of retry attempts on errors
+retry_delay: 1.0  # Base delay between attempts in seconds
+max_retry_delay: 60.0  # Upper delay limit (caps exponential growth)
+
+# =============================================================================
+# Web Search Configuration (for Responses API)
 # =============================================================================
 
 web_search:
   tool_choice: "auto"  # "auto" | "required" | "none"
   search_context_size: "medium"  # "low" | "medium" | "high"
-  # user_location:  # Локация для персонализации результатов
+  # user_location:  # Location for result personalization
   #   type: "approximate"
-  #   country: "RU"
-  #   city: "Moscow"
-  #   region: "Moscow"
+  #   country: "US"
+  #   city: "New York"
+  #   region: "New York"
 
 # =============================================================================
-# Справочник моделей OpenAI
+# OpenAI Model Reference
 # =============================================================================
 #
-# СТАНДАРТНЫЕ МОДЕЛИ (Chat Completions API):
+# STANDARD MODELS (Chat Completions API):
 # ─────────────────────────────────────────────────────────────────────────────
 # Alias              │ Snapshot                  │ Input $/1M │ Output $/1M
 # ─────────────────────────────────────────────────────────────────────────────
@@ -56,52 +56,52 @@ web_search:
 # o3-mini            │ o3-mini-2025-01-31        │ 1.10       │ 4.40
 # ─────────────────────────────────────────────────────────────────────────────
 #
-# SEARCH-МОДЕЛИ (Chat Completions API с встроенным web search):
+# SEARCH MODELS (Chat Completions API with built-in web search):
 # ─────────────────────────────────────────────────────────────────────────────
-# gpt-4o-search-preview       │ Доступна без верификации org
-# gpt-4o-mini-search-preview  │ Доступна без верификации org
-# gpt-5-search-api            │ Может требовать верификации org
-# ─────────────────────────────────────────────────────────────────────────────
-#
-# DEEP RESEARCH МОДЕЛИ (Responses API, длительный agentic поиск):
-# ─────────────────────────────────────────────────────────────────────────────
-# o3-deep-research            │ Требует хотя бы один источник данных
-# o4-mini-deep-research       │ Требует хотя бы один источник данных
+# gpt-4o-search-preview       │ Available without org verification
+# gpt-4o-mini-search-preview  │ Available without org verification
+# gpt-5-search-api            │ May require org verification
 # ─────────────────────────────────────────────────────────────────────────────
 #
-# СПОСОБЫ WEB SEARCH:
+# DEEP RESEARCH MODELS (Responses API, long-running agentic search):
+# ─────────────────────────────────────────────────────────────────────────────
+# o3-deep-research            │ Requires at least one data source
+# o4-mini-deep-research       │ Requires at least one data source
+# ─────────────────────────────────────────────────────────────────────────────
 #
-# 1. Responses API + web_search tool (рекомендуемый):
-#    - Используйте call_openai_web_search() или client.call_web_search()
-#    - Работает с любой стандартной моделью (gpt-4o, gpt-4.1, o4-mini и др.)
-#    - Модель сама решает искать или нет (tool_choice="auto")
-#    - Или принудительный поиск (tool_choice="required")
+# WEB SEARCH METHODS:
 #
-# 2. Chat Completions + search-модели:
-#    - Используйте call_openai(model="gpt-4o-search-preview")
-#    - Web search встроен в модель, не требует tools
+# 1. Responses API + web_search tool (recommended):
+#    - Use call_openai_web_search() or client.call_web_search()
+#    - Works with any standard model (gpt-4o, gpt-4.1, o4-mini, etc.)
+#    - Model decides whether to search (tool_choice="auto")
+#    - Or forced search (tool_choice="required")
 #
-# 3. Deep Research (длительный agentic поиск):
-#    - Модели o3-deep-research, o4-mini-deep-research
-#    - Для сложных исследовательских задач
+# 2. Chat Completions + search models:
+#    - Use call_openai(model="gpt-4o-search-preview")
+#    - Web search is built into the model, no tools required
+#
+# 3. Deep Research (long-running agentic search):
+#    - Models o3-deep-research, o4-mini-deep-research
+#    - For complex research tasks
 #
 # =============================================================================
 
-# Дополнительные параметры API (опционально, можно переопределить при вызове)
-# Эти параметры будут использоваться по умолчанию, если не указаны явно
+# Additional API parameters (optional, can be overridden at call time)
+# These parameters will be used by default if not explicitly specified
 defaults:
   # top_p: 1.0  # Nucleus sampling (0-1)
-  # frequency_penalty: 0.0  # Штраф за частоту (-2.0 до 2.0)
-  # presence_penalty: 0.0  # Штраф за присутствие (-2.0 до 2.0)
-  # n: 1  # Количество альтернативных ответов (1-128)
-  # stop: null  # Последовательности для остановки генерации
-  # seed: null  # Значение для детерминированных результатов
-  # response_format: null  # Формат ответа: {"type": "json_object"} или {"type": "json_schema", "json_schema": {...}}
-  # logprobs: false  # Включить логарифмы вероятностей
-  # top_logprobs: null  # Количество топ-токенов для logprobs: 0 для отключения, 1-20 для включения
-  # logit_bias: null  # Изменение вероятности токенов: {"token_id": bias_value} где bias_value от -100 до 100
-  # tools: null  # Список инструментов для Function Calling
-  # tool_choice: "auto"  # Стратегия выбора инструмента
-  # parallel_tool_calls: true  # Разрешить параллельные вызовы функций
-  # service_tier: "auto"  # Уровень обслуживания: "auto", "default", "flex", "priority"
-  # store: false  # Сохранять запрос для дистилляции модели
+  # frequency_penalty: 0.0  # Frequency penalty (-2.0 to 2.0)
+  # presence_penalty: 0.0  # Presence penalty (-2.0 to 2.0)
+  # n: 1  # Number of alternative responses (1-128)
+  # stop: null  # Stop sequences for generation
+  # seed: null  # Value for deterministic results
+  # response_format: null  # Response format: {"type": "json_object"} or {"type": "json_schema", "json_schema": {...}}
+  # logprobs: false  # Enable log probabilities
+  # top_logprobs: null  # Number of top tokens for logprobs: 0 to disable, 1-20 to enable
+  # logit_bias: null  # Token probability modification: {"token_id": bias_value} where bias_value is -100 to 100
+  # tools: null  # Tool list for Function Calling
+  # tool_choice: "auto"  # Tool selection strategy
+  # parallel_tool_calls: true  # Allow parallel function calls
+  # service_tier: "auto"  # Service tier: "auto", "default", "flex", "priority"
+  # store: false  # Store request for model distillation
